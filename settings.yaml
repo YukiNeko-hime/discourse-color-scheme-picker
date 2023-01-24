@@ -1,0 +1,35 @@
+immediate_reload:
+  type: bool
+  default: false
+  description:
+    en: Reload the page immediately upon changing color scheme (required for themes with custom JS).
+    fi: Päivitä sivu heti paletin vaihtuessa (vaaditaan kustomoidun javascriptin kanssa).
+
+enable_quick_access:
+  type: bool
+  default: true
+  description:
+    en: Enable color scheme selector in the user menu.
+    fi: Ota käyttöön väripaletin valitsin käyttäjävalikossa.
+
+dark_schemes:
+  type: list
+  default: ''
+  description:
+    en: Color schemes marked as dark (moon and stars) in user menu
+    fi: Väripaletit, jotka merkitään tummiksi (kuu) käyttäjävalikossa.
+
+light_schemes:
+  type: list
+  default: ''
+  description:
+    en: Color schemes marked as light (sun) in user menu
+    fi: Väripaletit, jotka merkitään vaaleiksi (aurinko) käyttäjävalikossa.
+
+fa_icons:
+  type: list
+  default: palette|sun|cloud|moon
+  list_type: 'compact'
+  description:
+    en: Icons used by the selector.
+    fi: Valitsimessa käytetyt ikonit.

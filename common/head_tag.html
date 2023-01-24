@@ -1,0 +1,138 @@
+<script type="text/discourse-plugin" version="0.8.25">
+  var Site = require("discourse/models/site").default.current();
+  var Session = require("discourse/models/session").default;
+  var h = require('virtual-dom').h;
+  var themeSelector = require('discourse/lib/theme-selector');
+  var colorSchemePicker = require('discourse/lib/color-scheme-picker');
+  var createWidgetFrom = require("discourse/widgets/widget").createWidgetFrom;
+  var QuickAccessPanel = require("discourse/widgets/quick-access-panel").default;
+  
+  // icons used in the menu
+  const icons = {
+    DARK: 'moon',
+    DEFAULT: 'cloud',
+    LIGHT: 'sun',
+    MENU: 'palette'
+  };
+  
+  // define some helper functions
+  function isInDarkMode() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+  
+  function isDark(scheme) {
+    return settings.dark_schemes.split("|").includes(scheme.name)
+  }
+  
+  function isLight(scheme) {
+    return settings.light_schemes.split("|").includes(scheme.name)
+  }
+  
+  function currentSchemeId() {
+    if (isInDarkMode()) {
+      return Session.currentProp('userDarkSchemeId')
+    } else {
+      return Session.currentProp('userColorSchemeId')
+    }
+  }
+  
+  // create the menu panel widget
+  createWidgetFrom(QuickAccessPanel, "quick-access-schemes", {
+    buildKey: () => "quick-access-schemes",
+    
+    hideBottomItems() {
+      return true
+    },
+    
+    findNewItems() {
+      return Ember.RSVP.Promise.resolve(this._getItems())
+    },
+    
+    _getItems() {
+      let schemes = Site.user_color_schemes;
+      
+      let items = []
+      
+      for (const scheme of schemes) {
+        if (isInDarkMode()) {
+          // only offer dark schemes in dark mode, following the Discourse convention
+          if (isDark(scheme)) {
+            items.push(this.toItem(scheme))
+          }
+        } else {
+          items.push(this.toItem(scheme))
+        }
+      }
+      
+      return items
+    },
+    
+    toItem(scheme) {
+      let icon;
+      
+      if (isDark(scheme)) {
+        icon = icons.DARK
+      } else if (isLight(scheme)) {
+        icon = icons.LIGHT
+      } else {
+        icon = icons.DEFAULT
+      }
+      
+      return {
+        action: "setScheme",
+        actionParam: scheme,
+        content: scheme.name,
+        icon: icon,
+        read: scheme.id != currentSchemeId()		// highlight the current scheme using pre-existing styling
+      }
+    },
+    
+    itemHtml(scheme) {
+      return this.attach("quick-access-item", scheme)
+    },
+    
+    setScheme(scheme) {
+      // save the setting first as a cookie
+      let themeId = themeSelector.currentThemeId();
+      let darkMode = isInDarkMode();
+      
+      if (darkMode) {
+        Session.currentProp('userDarkSchemeId', scheme.id)
+      } else {
+        Session.currentProp('userColorSchemeId', scheme.id)
+      }
+      
+      colorSchemePicker.updateColorSchemeCookie(scheme.id, {dark: darkMode});
+      
+      // then apply the scheme
+      if(settings.immediate_reload){
+        this.sendWidgetAction('toggleUserMenu');
+        window.location.reload();
+      } else {
+        colorSchemePicker.loadColorSchemeStylesheet(scheme.id, themeId, darkMode)
+      }
+      
+      // finally rerender the widget to reflect the change
+      this.refreshNotifications(this.state);
+    }
+  });
+  
+  // define the menu glyph
+  function schemesGlyph() {
+    return {
+      title: 'user.color_scheme',
+      className: 'user-schemes-link menu-link',
+      id: 'schemes',
+      icon: icons.MENU,
+      action: 'quickAccess',
+      actionParam: 'schemes',
+      data: {url: '/my/preferences/interface'},
+      role: 'tab'
+    }
+  }
+  
+  // add the glyph to the menu using the api
+  if (settings.enable_quick_access) {
+    api.addUserMenuGlyph(schemesGlyph)
+  }
+</script>
